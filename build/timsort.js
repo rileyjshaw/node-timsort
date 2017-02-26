@@ -23,9 +23,9 @@
  *
  ****/
 (function (global, factory) {
-  if (typeof define === 'function' && define.amd) {
+  if (typeof define === "function" && define.amd) {
     define('timsort', ['exports'], factory);
-  } else if (typeof exports !== 'undefined') {
+  } else if (typeof exports !== "undefined") {
     factory(exports);
   } else {
     var mod = {
@@ -37,14 +37,34 @@
 })(this, function (exports) {
   'use strict';
 
-  exports.__esModule = true;
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
   exports.sort = sort;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
-      throw new TypeError('Cannot call a class as a function');
+      throw new TypeError("Cannot call a class as a function");
     }
   }
+
+  var _createClass = function () {
+    function defineProperties(target, props) {
+      for (var i = 0; i < props.length; i++) {
+        var descriptor = props[i];
+        descriptor.enumerable = descriptor.enumerable || false;
+        descriptor.configurable = true;
+        if ("value" in descriptor) descriptor.writable = true;
+        Object.defineProperty(target, descriptor.key, descriptor);
+      }
+    }
+
+    return function (Constructor, protoProps, staticProps) {
+      if (protoProps) defineProperties(Constructor.prototype, protoProps);
+      if (staticProps) defineProperties(Constructor, staticProps);
+      return Constructor;
+    };
+  }();
 
   var DEFAULT_MIN_MERGE = 32;
 
@@ -83,7 +103,7 @@
       return 0;
     }
 
-    if (~ ~a === a && ~ ~b === b) {
+    if (~~a === a && ~~b === b) {
       if (a === 0 || b === 0) {
         return a < b ? -1 : 1;
       }
@@ -334,7 +354,7 @@
     return offset;
   }
 
-  var TimSort = (function () {
+  var TimSort = function () {
     function TimSort(array, compare) {
       _classCallCheck(this, TimSort);
 
@@ -365,393 +385,401 @@
       this.runLength = new Array(this.stackLength);
     }
 
-    TimSort.prototype.pushRun = function pushRun(runStart, runLength) {
-      this.runStart[this.stackSize] = runStart;
-      this.runLength[this.stackSize] = runLength;
-      this.stackSize += 1;
-    };
+    _createClass(TimSort, [{
+      key: 'pushRun',
+      value: function pushRun(runStart, runLength) {
+        this.runStart[this.stackSize] = runStart;
+        this.runLength[this.stackSize] = runLength;
+        this.stackSize += 1;
+      }
+    }, {
+      key: 'mergeRuns',
+      value: function mergeRuns() {
+        while (this.stackSize > 1) {
+          var n = this.stackSize - 2;
 
-    TimSort.prototype.mergeRuns = function mergeRuns() {
-      while (this.stackSize > 1) {
-        var n = this.stackSize - 2;
+          if (n >= 1 && this.runLength[n - 1] <= this.runLength[n] + this.runLength[n + 1] || n >= 2 && this.runLength[n - 2] <= this.runLength[n] + this.runLength[n - 1]) {
 
-        if (n >= 1 && this.runLength[n - 1] <= this.runLength[n] + this.runLength[n + 1] || n >= 2 && this.runLength[n - 2] <= this.runLength[n] + this.runLength[n - 1]) {
+            if (this.runLength[n - 1] < this.runLength[n + 1]) {
+              n--;
+            }
+          } else if (this.runLength[n] > this.runLength[n + 1]) {
+            break;
+          }
+          this.mergeAt(n);
+        }
+      }
+    }, {
+      key: 'forceMergeRuns',
+      value: function forceMergeRuns() {
+        while (this.stackSize > 1) {
+          var n = this.stackSize - 2;
 
-          if (this.runLength[n - 1] < this.runLength[n + 1]) {
+          if (n > 0 && this.runLength[n - 1] < this.runLength[n + 1]) {
             n--;
           }
-        } else if (this.runLength[n] > this.runLength[n + 1]) {
-          break;
+
+          this.mergeAt(n);
         }
-        this.mergeAt(n);
       }
-    };
+    }, {
+      key: 'mergeAt',
+      value: function mergeAt(i) {
+        var compare = this.compare;
+        var array = this.array;
 
-    TimSort.prototype.forceMergeRuns = function forceMergeRuns() {
-      while (this.stackSize > 1) {
-        var n = this.stackSize - 2;
+        var start1 = this.runStart[i];
+        var length1 = this.runLength[i];
+        var start2 = this.runStart[i + 1];
+        var length2 = this.runLength[i + 1];
 
-        if (n > 0 && this.runLength[n - 1] < this.runLength[n + 1]) {
-          n--;
+        this.runLength[i] = length1 + length2;
+
+        if (i === this.stackSize - 3) {
+          this.runStart[i + 1] = this.runStart[i + 2];
+          this.runLength[i + 1] = this.runLength[i + 2];
         }
 
-        this.mergeAt(n);
+        this.stackSize--;
+
+        var k = gallopRight(array[start2], array, start1, length1, 0, compare);
+        start1 += k;
+        length1 -= k;
+
+        if (length1 === 0) {
+          return;
+        }
+
+        length2 = gallopLeft(array[start1 + length1 - 1], array, start2, length2, length2 - 1, compare);
+
+        if (length2 === 0) {
+          return;
+        }
+
+        if (length1 <= length2) {
+          this.mergeLow(start1, length1, start2, length2);
+        } else {
+          this.mergeHigh(start1, length1, start2, length2);
+        }
       }
-    };
+    }, {
+      key: 'mergeLow',
+      value: function mergeLow(start1, length1, start2, length2) {
 
-    TimSort.prototype.mergeAt = function mergeAt(i) {
-      var compare = this.compare;
-      var array = this.array;
+        var compare = this.compare;
+        var array = this.array;
+        var tmp = this.tmp;
+        var i = 0;
 
-      var start1 = this.runStart[i];
-      var length1 = this.runLength[i];
-      var start2 = this.runStart[i + 1];
-      var length2 = this.runLength[i + 1];
-
-      this.runLength[i] = length1 + length2;
-
-      if (i === this.stackSize - 3) {
-        this.runStart[i + 1] = this.runStart[i + 2];
-        this.runLength[i + 1] = this.runLength[i + 2];
-      }
-
-      this.stackSize--;
-
-      var k = gallopRight(array[start2], array, start1, length1, 0, compare);
-      start1 += k;
-      length1 -= k;
-
-      if (length1 === 0) {
-        return;
-      }
-
-      length2 = gallopLeft(array[start1 + length1 - 1], array, start2, length2, length2 - 1, compare);
-
-      if (length2 === 0) {
-        return;
-      }
-
-      if (length1 <= length2) {
-        this.mergeLow(start1, length1, start2, length2);
-      } else {
-        this.mergeHigh(start1, length1, start2, length2);
-      }
-    };
-
-    TimSort.prototype.mergeLow = function mergeLow(start1, length1, start2, length2) {
-
-      var compare = this.compare;
-      var array = this.array;
-      var tmp = this.tmp;
-      var i = 0;
-
-      for (i = 0; i < length1; i++) {
-        tmp[i] = array[start1 + i];
-      }
-
-      var cursor1 = 0;
-      var cursor2 = start2;
-      var dest = start1;
-
-      array[dest++] = array[cursor2++];
-
-      if (--length2 === 0) {
         for (i = 0; i < length1; i++) {
-          array[dest + i] = tmp[cursor1 + i];
+          tmp[i] = array[start1 + i];
         }
-        return;
-      }
 
-      if (length1 === 1) {
-        for (i = 0; i < length2; i++) {
-          array[dest + i] = array[cursor2 + i];
+        var cursor1 = 0;
+        var cursor2 = start2;
+        var dest = start1;
+
+        array[dest++] = array[cursor2++];
+
+        if (--length2 === 0) {
+          for (i = 0; i < length1; i++) {
+            array[dest + i] = tmp[cursor1 + i];
+          }
+          return;
         }
-        array[dest + length2] = tmp[cursor1];
-        return;
-      }
 
-      var minGallop = this.minGallop;
+        if (length1 === 1) {
+          for (i = 0; i < length2; i++) {
+            array[dest + i] = array[cursor2 + i];
+          }
+          array[dest + length2] = tmp[cursor1];
+          return;
+        }
 
-      while (true) {
-        var count1 = 0;
-        var count2 = 0;
-        var exit = false;
+        var minGallop = this.minGallop;
 
-        do {
-          if (compare(array[cursor2], tmp[cursor1]) < 0) {
+        while (true) {
+          var count1 = 0;
+          var count2 = 0;
+          var exit = false;
+
+          do {
+            if (compare(array[cursor2], tmp[cursor1]) < 0) {
+              array[dest++] = array[cursor2++];
+              count2++;
+              count1 = 0;
+
+              if (--length2 === 0) {
+                exit = true;
+                break;
+              }
+            } else {
+              array[dest++] = tmp[cursor1++];
+              count1++;
+              count2 = 0;
+              if (--length1 === 1) {
+                exit = true;
+                break;
+              }
+            }
+          } while ((count1 | count2) < minGallop);
+
+          if (exit) {
+            break;
+          }
+
+          do {
+            count1 = gallopRight(array[cursor2], tmp, cursor1, length1, 0, compare);
+
+            if (count1 !== 0) {
+              for (i = 0; i < count1; i++) {
+                array[dest + i] = tmp[cursor1 + i];
+              }
+
+              dest += count1;
+              cursor1 += count1;
+              length1 -= count1;
+              if (length1 <= 1) {
+                exit = true;
+                break;
+              }
+            }
+
             array[dest++] = array[cursor2++];
-            count2++;
-            count1 = 0;
 
             if (--length2 === 0) {
               exit = true;
               break;
             }
-          } else {
+
+            count2 = gallopLeft(tmp[cursor1], array, cursor2, length2, 0, compare);
+
+            if (count2 !== 0) {
+              for (i = 0; i < count2; i++) {
+                array[dest + i] = array[cursor2 + i];
+              }
+
+              dest += count2;
+              cursor2 += count2;
+              length2 -= count2;
+
+              if (length2 === 0) {
+                exit = true;
+                break;
+              }
+            }
             array[dest++] = tmp[cursor1++];
-            count1++;
-            count2 = 0;
+
             if (--length1 === 1) {
               exit = true;
               break;
             }
-          }
-        } while ((count1 | count2) < minGallop);
 
-        if (exit) {
-          break;
-        }
+            minGallop--;
+          } while (count1 >= DEFAULT_MIN_GALLOPING || count2 >= DEFAULT_MIN_GALLOPING);
 
-        do {
-          count1 = gallopRight(array[cursor2], tmp, cursor1, length1, 0, compare);
-
-          if (count1 !== 0) {
-            for (i = 0; i < count1; i++) {
-              array[dest + i] = tmp[cursor1 + i];
-            }
-
-            dest += count1;
-            cursor1 += count1;
-            length1 -= count1;
-            if (length1 <= 1) {
-              exit = true;
-              break;
-            }
-          }
-
-          array[dest++] = array[cursor2++];
-
-          if (--length2 === 0) {
-            exit = true;
+          if (exit) {
             break;
           }
 
-          count2 = gallopLeft(tmp[cursor1], array, cursor2, length2, 0, compare);
-
-          if (count2 !== 0) {
-            for (i = 0; i < count2; i++) {
-              array[dest + i] = array[cursor2 + i];
-            }
-
-            dest += count2;
-            cursor2 += count2;
-            length2 -= count2;
-
-            if (length2 === 0) {
-              exit = true;
-              break;
-            }
+          if (minGallop < 0) {
+            minGallop = 0;
           }
-          array[dest++] = tmp[cursor1++];
 
-          if (--length1 === 1) {
-            exit = true;
+          minGallop += 2;
+        }
+
+        this.minGallop = minGallop;
+
+        if (minGallop < 1) {
+          this.minGallop = 1;
+        }
+
+        if (length1 === 1) {
+          for (i = 0; i < length2; i++) {
+            array[dest + i] = array[cursor2 + i];
+          }
+          array[dest + length2] = tmp[cursor1];
+        } else if (length1 === 0) {
+          throw new Error('mergeLow preconditions were not respected');
+        } else {
+          for (i = 0; i < length1; i++) {
+            array[dest + i] = tmp[cursor1 + i];
+          }
+        }
+      }
+    }, {
+      key: 'mergeHigh',
+      value: function mergeHigh(start1, length1, start2, length2) {
+        var compare = this.compare;
+        var array = this.array;
+        var tmp = this.tmp;
+        var i = 0;
+
+        for (i = 0; i < length2; i++) {
+          tmp[i] = array[start2 + i];
+        }
+
+        var cursor1 = start1 + length1 - 1;
+        var cursor2 = length2 - 1;
+        var dest = start2 + length2 - 1;
+        var customCursor = 0;
+        var customDest = 0;
+
+        array[dest--] = array[cursor1--];
+
+        if (--length1 === 0) {
+          customCursor = dest - (length2 - 1);
+
+          for (i = 0; i < length2; i++) {
+            array[customCursor + i] = tmp[i];
+          }
+
+          return;
+        }
+
+        if (length2 === 1) {
+          dest -= length1;
+          cursor1 -= length1;
+          customDest = dest + 1;
+          customCursor = cursor1 + 1;
+
+          for (i = length1 - 1; i >= 0; i--) {
+            array[customDest + i] = array[customCursor + i];
+          }
+
+          array[dest] = tmp[cursor2];
+          return;
+        }
+
+        var minGallop = this.minGallop;
+
+        while (true) {
+          var count1 = 0;
+          var count2 = 0;
+          var exit = false;
+
+          do {
+            if (compare(tmp[cursor2], array[cursor1]) < 0) {
+              array[dest--] = array[cursor1--];
+              count1++;
+              count2 = 0;
+              if (--length1 === 0) {
+                exit = true;
+                break;
+              }
+            } else {
+              array[dest--] = tmp[cursor2--];
+              count2++;
+              count1 = 0;
+              if (--length2 === 1) {
+                exit = true;
+                break;
+              }
+            }
+          } while ((count1 | count2) < minGallop);
+
+          if (exit) {
             break;
           }
 
-          minGallop--;
-        } while (count1 >= DEFAULT_MIN_GALLOPING || count2 >= DEFAULT_MIN_GALLOPING);
+          do {
+            count1 = length1 - gallopRight(tmp[cursor2], array, start1, length1, length1 - 1, compare);
 
-        if (exit) {
-          break;
-        }
+            if (count1 !== 0) {
+              dest -= count1;
+              cursor1 -= count1;
+              length1 -= count1;
+              customDest = dest + 1;
+              customCursor = cursor1 + 1;
 
-        if (minGallop < 0) {
-          minGallop = 0;
-        }
+              for (i = count1 - 1; i >= 0; i--) {
+                array[customDest + i] = array[customCursor + i];
+              }
 
-        minGallop += 2;
-      }
-
-      this.minGallop = minGallop;
-
-      if (minGallop < 1) {
-        this.minGallop = 1;
-      }
-
-      if (length1 === 1) {
-        for (i = 0; i < length2; i++) {
-          array[dest + i] = array[cursor2 + i];
-        }
-        array[dest + length2] = tmp[cursor1];
-      } else if (length1 === 0) {
-        throw new Error('mergeLow preconditions were not respected');
-      } else {
-        for (i = 0; i < length1; i++) {
-          array[dest + i] = tmp[cursor1 + i];
-        }
-      }
-    };
-
-    TimSort.prototype.mergeHigh = function mergeHigh(start1, length1, start2, length2) {
-      var compare = this.compare;
-      var array = this.array;
-      var tmp = this.tmp;
-      var i = 0;
-
-      for (i = 0; i < length2; i++) {
-        tmp[i] = array[start2 + i];
-      }
-
-      var cursor1 = start1 + length1 - 1;
-      var cursor2 = length2 - 1;
-      var dest = start2 + length2 - 1;
-      var customCursor = 0;
-      var customDest = 0;
-
-      array[dest--] = array[cursor1--];
-
-      if (--length1 === 0) {
-        customCursor = dest - (length2 - 1);
-
-        for (i = 0; i < length2; i++) {
-          array[customCursor + i] = tmp[i];
-        }
-
-        return;
-      }
-
-      if (length2 === 1) {
-        dest -= length1;
-        cursor1 -= length1;
-        customDest = dest + 1;
-        customCursor = cursor1 + 1;
-
-        for (i = length1 - 1; i >= 0; i--) {
-          array[customDest + i] = array[customCursor + i];
-        }
-
-        array[dest] = tmp[cursor2];
-        return;
-      }
-
-      var minGallop = this.minGallop;
-
-      while (true) {
-        var count1 = 0;
-        var count2 = 0;
-        var exit = false;
-
-        do {
-          if (compare(tmp[cursor2], array[cursor1]) < 0) {
-            array[dest--] = array[cursor1--];
-            count1++;
-            count2 = 0;
-            if (--length1 === 0) {
-              exit = true;
-              break;
+              if (length1 === 0) {
+                exit = true;
+                break;
+              }
             }
-          } else {
+
             array[dest--] = tmp[cursor2--];
-            count2++;
-            count1 = 0;
+
             if (--length2 === 1) {
               exit = true;
               break;
             }
-          }
-        } while ((count1 | count2) < minGallop);
 
-        if (exit) {
-          break;
-        }
+            count2 = length2 - gallopLeft(array[cursor1], tmp, 0, length2, length2 - 1, compare);
 
-        do {
-          count1 = length1 - gallopRight(tmp[cursor2], array, start1, length1, length1 - 1, compare);
+            if (count2 !== 0) {
+              dest -= count2;
+              cursor2 -= count2;
+              length2 -= count2;
+              customDest = dest + 1;
+              customCursor = cursor2 + 1;
 
-          if (count1 !== 0) {
-            dest -= count1;
-            cursor1 -= count1;
-            length1 -= count1;
-            customDest = dest + 1;
-            customCursor = cursor1 + 1;
+              for (i = 0; i < count2; i++) {
+                array[customDest + i] = tmp[customCursor + i];
+              }
 
-            for (i = count1 - 1; i >= 0; i--) {
-              array[customDest + i] = array[customCursor + i];
+              if (length2 <= 1) {
+                exit = true;
+                break;
+              }
             }
 
-            if (length1 === 0) {
+            array[dest--] = array[cursor1--];
+
+            if (--length1 === 0) {
               exit = true;
               break;
             }
-          }
 
-          array[dest--] = tmp[cursor2--];
+            minGallop--;
+          } while (count1 >= DEFAULT_MIN_GALLOPING || count2 >= DEFAULT_MIN_GALLOPING);
 
-          if (--length2 === 1) {
-            exit = true;
+          if (exit) {
             break;
           }
 
-          count2 = length2 - gallopLeft(array[cursor1], tmp, 0, length2, length2 - 1, compare);
-
-          if (count2 !== 0) {
-            dest -= count2;
-            cursor2 -= count2;
-            length2 -= count2;
-            customDest = dest + 1;
-            customCursor = cursor2 + 1;
-
-            for (i = 0; i < count2; i++) {
-              array[customDest + i] = tmp[customCursor + i];
-            }
-
-            if (length2 <= 1) {
-              exit = true;
-              break;
-            }
+          if (minGallop < 0) {
+            minGallop = 0;
           }
 
-          array[dest--] = array[cursor1--];
+          minGallop += 2;
+        }
 
-          if (--length1 === 0) {
-            exit = true;
-            break;
+        this.minGallop = minGallop;
+
+        if (minGallop < 1) {
+          this.minGallop = 1;
+        }
+
+        if (length2 === 1) {
+          dest -= length1;
+          cursor1 -= length1;
+          customDest = dest + 1;
+          customCursor = cursor1 + 1;
+
+          for (i = length1 - 1; i >= 0; i--) {
+            array[customDest + i] = array[customCursor + i];
           }
 
-          minGallop--;
-        } while (count1 >= DEFAULT_MIN_GALLOPING || count2 >= DEFAULT_MIN_GALLOPING);
-
-        if (exit) {
-          break;
-        }
-
-        if (minGallop < 0) {
-          minGallop = 0;
-        }
-
-        minGallop += 2;
-      }
-
-      this.minGallop = minGallop;
-
-      if (minGallop < 1) {
-        this.minGallop = 1;
-      }
-
-      if (length2 === 1) {
-        dest -= length1;
-        cursor1 -= length1;
-        customDest = dest + 1;
-        customCursor = cursor1 + 1;
-
-        for (i = length1 - 1; i >= 0; i--) {
-          array[customDest + i] = array[customCursor + i];
-        }
-
-        array[dest] = tmp[cursor2];
-      } else if (length2 === 0) {
-        throw new Error('mergeHigh preconditions were not respected');
-      } else {
-        customCursor = dest - (length2 - 1);
-        for (i = 0; i < length2; i++) {
-          array[customCursor + i] = tmp[i];
+          array[dest] = tmp[cursor2];
+        } else if (length2 === 0) {
+          throw new Error('mergeHigh preconditions were not respected');
+        } else {
+          customCursor = dest - (length2 - 1);
+          for (i = 0; i < length2; i++) {
+            array[customCursor + i] = tmp[i];
+          }
         }
       }
-    };
+    }]);
 
     return TimSort;
-  })();
+  }();
 
   function sort(array, compare, lo, hi) {
     if (!Array.isArray(array)) {

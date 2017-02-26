@@ -14,20 +14,18 @@ module.exports = function (grunt) {
       options: {
         ast: false,
         sourceMaps: false,
-        nonStandard: false,
         compact: 'false',
         comments: false,
-        modules: 'umd',
         moduleId: 'timsort',
-        experimental: true
+        presets: ['es2015']
       },
       build: {
         options: {
-          loose: 'all',
-          optional: [
-            'spec.undefinedToVoid',
-            'minification.propertyLiterals',
-            'es7.classProperties'
+          plugins: [
+            'transform-es2015-modules-umd',
+            'transform-undefined-to-void',
+            'transform-property-literals',
+            'transform-class-properties'
           ]
         },
         files: [
