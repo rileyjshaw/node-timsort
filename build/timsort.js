@@ -753,63 +753,59 @@
     return TimSort;
   })();
 
-  function sort(array, compare, lo, hi) {
-    if (!Array.isArray(array)) {
-      throw new TypeError('Can only sort arrays');
-    }
-
-    if (!compare) {
-      compare = alphabeticalCompare;
-    } else if (typeof compare !== 'function') {
-      hi = lo;
-      lo = compare;
-      compare = alphabeticalCompare;
-    }
-
-    if (!lo) {
-      lo = 0;
-    }
-    if (!hi) {
-      hi = array.length;
-    }
-
-    var remaining = hi - lo;
-
-    if (remaining < 2) {
-      return;
-    }
-
-    var runLength = 0;
-
-    if (remaining < DEFAULT_MIN_MERGE) {
-      runLength = makeAscendingRun(array, lo, hi, compare);
-      binaryInsertionSort(array, lo, hi, lo + runLength, compare);
-      return;
-    }
-
-    var ts = new TimSort(array, compare);
-
-    var minRun = minRunLength(remaining);
-
-    do {
-      runLength = makeAscendingRun(array, lo, hi, compare);
-      if (runLength < minRun) {
-        var force = remaining;
-        if (force > minRun) {
-          force = minRun;
-        }
-
-        binaryInsertionSort(array, lo, lo + force, lo + runLength, compare);
-        runLength = force;
+  function sort(array) {
+    var compare = arguments.length <= 1 || arguments[1] === undefined ? alphabeticalCompare : arguments[1];
+    var lo = arguments.length <= 2 || arguments[2] === undefined ? 0 : arguments[2];
+    var hi = arguments.length <= 3 || arguments[3] === undefined ? array.length : arguments[3];
+    return (function () {
+      if (!Array.isArray(array)) {
+        throw new TypeError('Can only sort arrays');
       }
 
-      ts.pushRun(lo, runLength);
-      ts.mergeRuns();
+      if (typeof compare !== 'function') {
+        hi = lo;
+        lo = compare;
+        compare = alphabeticalCompare;
+      }
 
-      remaining -= runLength;
-      lo += runLength;
-    } while (remaining !== 0);
+      var remaining = hi - lo;
 
-    ts.forceMergeRuns();
+      if (remaining < 2) {
+        return;
+      }
+
+      var runLength = 0;
+
+      if (remaining < DEFAULT_MIN_MERGE) {
+        runLength = makeAscendingRun(array, lo, hi, compare);
+        binaryInsertionSort(array, lo, hi, lo + runLength, compare);
+        return;
+      }
+
+      var ts = new TimSort(array, compare);
+
+      var minRun = minRunLength(remaining);
+
+      do {
+        runLength = makeAscendingRun(array, lo, hi, compare);
+        if (runLength < minRun) {
+          var force = remaining;
+          if (force > minRun) {
+            force = minRun;
+          }
+
+          binaryInsertionSort(array, lo, lo + force, lo + runLength, compare);
+          runLength = force;
+        }
+
+        ts.pushRun(lo, runLength);
+        ts.mergeRuns();
+
+        remaining -= runLength;
+        lo += runLength;
+      } while (remaining !== 0);
+
+      ts.forceMergeRuns();
+    })();
   }
 });

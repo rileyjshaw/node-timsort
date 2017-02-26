@@ -907,7 +907,7 @@ class TimSort {
  * @param {number} hi - Last element in the range.
  *     comparator.
  */
-export function sort(array, compare, lo, hi) {
+export function sort(array, compare = alphabeticalCompare, lo = 0, hi = array.length) {
   if (!Array.isArray(array)) {
     throw new TypeError('Can only sort arrays');
   }
@@ -916,20 +916,10 @@ export function sort(array, compare, lo, hi) {
    * Handle the case where a comparison function is not provided. We do
    * lexicographic sorting
    */
-  if (!compare) {
-    compare = alphabeticalCompare;
-
-  } else if (typeof compare !== 'function') {
+  if (typeof compare !== 'function') {
     hi = lo;
     lo = compare;
     compare = alphabeticalCompare;
-  }
-
-  if (!lo) {
-    lo = 0;
-  }
-  if (!hi) {
-    hi = array.length;
   }
 
   let remaining = hi - lo;
