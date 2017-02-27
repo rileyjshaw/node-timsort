@@ -3,7 +3,8 @@
   "env":     {
     "node":    true,
     "mocha":   true,
-    "browser": true
+    "browser": true,
+    "es6": true
   },
   "globals": {
     "describe":   true,

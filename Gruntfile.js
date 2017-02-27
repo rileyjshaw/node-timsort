@@ -16,7 +16,7 @@ module.exports = function (grunt) {
         sourceMaps: false,
         compact: 'false',
         comments: false,
-        moduleId: 'timsort',
+        moduleId: 'timsortAsync',
         presets: ['es2015']
       },
       build: {
@@ -25,7 +25,10 @@ module.exports = function (grunt) {
             'transform-es2015-modules-umd',
             'transform-undefined-to-void',
             'transform-property-literals',
-            'transform-class-properties'
+            'transform-class-properties',
+            'syntax-async-functions',
+            'transform-async-to-generator',
+            'transform-regenerator'
           ]
         },
         files: [

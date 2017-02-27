@@ -1,6 +1,6 @@
 The MIT License
 
-Copyright (c) 2015 Marco Ziccardi
+Copyright (c) 2017 Riley Shaw
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

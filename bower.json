@@ -1,16 +1,16 @@
 {
-  "name": "timsort",
-  "version": "0.3.1",
+  "name": "timsort-async",
+  "version": "1.0.0",
   "author": {
-    "name": "Marco Ziccardi",
-    "url": "http://mziccard.me/"
+    "name": "rileyjshaw",
+    "url": "http://rileyjshaw.com/"
   },
-  "description": "TimSort: Fast Sorting for Node.js",
-  "homepage": "https://github.com/mziccard/node-timsort",
+  "description": "TimSort: Fast (Asynchronous) Sorting for Node.js",
+  "homepage": "https://github.com/rileyjshaw/node-timsort-async",
   "main": "./build/timsort.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mziccard/node-timsort.git"
+    "url": "https://github.com/rileyjshaw/node-timsort-async.git"
   },
   "keywords": [
     "sort",
@@ -18,11 +18,11 @@
     "TimSort",
     "algorithm",
     "python",
-    "performance"
+    "performance",
+    "asynchronous"
   ],
   "license": "MIT",
   "ignore": [
-    "benchmark",
     "coverage",
     "node_modules",
     "test",

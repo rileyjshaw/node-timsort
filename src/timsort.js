@@ -1,3 +1,5 @@
+import 'regenerator-runtime/runtime';
+
 /**
  * Default minimum size of a run.
  */
@@ -15,105 +17,6 @@ const DEFAULT_MIN_GALLOPING = 7;
 const DEFAULT_TMP_STORAGE_LENGTH = 256;
 
 /**
- * Pre-computed powers of 10 for efficient lexicographic comparison of
- * small integers.
- */
-const POWERS_OF_TEN = [1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9]
-
-/**
- * Estimate the logarithm base 10 of a small integer.
- *
- * @param {number} x - The integer to estimate the logarithm of.
- * @return {number} - The estimated logarithm of the integer.
- */
-function log10(x) {
-  if (x < 1e5) {
-    if (x < 1e2) {
-      return x < 1e1 ? 0 : 1;
-    }
-
-    if (x < 1e4) {
-      return x < 1e3 ? 2 : 3;
-    }
-
-    return 4;
-  }
-
-  if (x < 1e7) {
-    return x < 1e6 ? 5 : 6;
-  }
-
-  if (x < 1e9) {
-    return x < 1e8 ? 7 : 8;
-  }
-
-  return 9;
-}
-
-/**
- * Default alphabetical comparison of items.
- *
- * @param {string|object|number} a - First element to compare.
- * @param {string|object|number} b - Second element to compare.
- * @return {number} - A positive number if a.toString() > b.toString(), a
- * negative number if .toString() < b.toString(), 0 otherwise.
- */
-function alphabeticalCompare(a, b) {
-  if (a === b) {
-    return 0;
-  }
-
-  if (~~a === a && ~~b === b) {
-    if (a === 0 || b === 0) {
-      return a < b ? -1 : 1;
-    }
-
-    if (a < 0 || b < 0) {
-      if (b >= 0) {
-        return -1;
-      }
-
-      if (a >= 0) {
-        return 1;
-      }
-
-      a = -a;
-      b = -b;
-    }
-
-    const al = log10(a);
-    const bl = log10(b);
-
-    let t = 0;
-
-    if (al < bl) {
-      a *= POWERS_OF_TEN[bl - al - 1];
-      b /= 10;
-      t = -1;
-    } else if (al > bl) {
-      b *= POWERS_OF_TEN[al - bl - 1];
-      a /= 10;
-      t = 1;
-    }
-
-    if (a === b) {
-      return t;
-    }
-
-    return a < b ? -1 : 1;
-  }
-
-  let aStr = String(a);
-  let bStr = String(b);
-
-  if (aStr === bStr) {
-    return 0;
-  }
-
-  return aStr < bStr ? -1 : 1;
-}
-
-/**
  * Compute minimum run length for TimSort
  *
  * @param {number} n - The size of the array to sort.
@@ -127,41 +30,6 @@ function minRunLength(n) {
   }
 
   return n + r;
-}
-
-/**
- * Counts the length of a monotonically ascending or strictly monotonically
- * descending sequence (run) starting at array[lo] in the range [lo, hi). If
- * the run is descending it is made ascending.
- *
- * @param {array} array - The array to reverse.
- * @param {number} lo - First element in the range (inclusive).
- * @param {number} hi - Last element in the range.
- * @param {function} compare - Item comparison function.
- * @return {number} - The length of the run.
- */
-function makeAscendingRun(array, lo, hi, compare) {
-  let runHi = lo + 1;
-
-  if (runHi === hi) {
-    return 1;
-  }
-
-  // Descending
-  if (compare(array[runHi++], array[lo]) < 0) {
-    while (runHi < hi && compare(array[runHi], array[runHi - 1]) < 0) {
-      runHi++;
-    }
-
-    reverseRun(array, lo, runHi);
-    // Ascending
-  } else {
-    while (runHi < hi && compare(array[runHi], array[runHi - 1]) >= 0) {
-      runHi++;
-    }
-  }
-
-  return runHi - lo;
 }
 
 /**
@@ -182,6 +50,41 @@ function reverseRun(array, lo, hi) {
 }
 
 /**
+ * Counts the length of a monotonically ascending or strictly monotonically
+ * descending sequence (run) starting at array[lo] in the range [lo, hi). If
+ * the run is descending it is made ascending.
+ *
+ * @param {array} array - The array to reverse.
+ * @param {number} lo - First element in the range (inclusive).
+ * @param {number} hi - Last element in the range.
+ * @param {function} compare - Item comparison function.
+ * @return {number} - The length of the run.
+ */
+async function makeAscendingRun(array, lo, hi, compare) {
+  let runHi = lo + 1;
+
+  if (runHi === hi) {
+    return 1;
+  }
+
+  // Descending
+  if (await compare(array[runHi++], array[lo]) < 0) {
+    while (runHi < hi && await compare(array[runHi], array[runHi - 1]) < 0) {
+      runHi++;
+    }
+
+    reverseRun(array, lo, runHi);
+    // Ascending
+  } else {
+    while (runHi < hi && await compare(array[runHi], array[runHi - 1]) >= 0) {
+      runHi++;
+    }
+  }
+
+  return runHi - lo;
+}
+
+/**
  * Perform the binary sort of the array in the range [lo, hi) where start is
  * the first element possibly out of order.
  *
@@ -191,7 +94,7 @@ function reverseRun(array, lo, hi) {
  * @param {number} start - First element possibly out of order.
  * @param {function} compare - Item comparison function.
  */
-function binaryInsertionSort(array, lo, hi, start, compare) {
+async function binaryInsertionSort(array, lo, hi, start, compare) {
   if (start === lo) {
     start++;
   }
@@ -210,7 +113,7 @@ function binaryInsertionSort(array, lo, hi, start, compare) {
     while (left < right) {
       let mid = (left + right) >>> 1;
 
-      if (compare(pivot, array[mid]) < 0) {
+      if (await compare(pivot, array[mid]) < 0) {
         right = mid;
       } else {
         left = mid + 1;
@@ -258,15 +161,15 @@ function binaryInsertionSort(array, lo, hi, start, compare) {
  * @param {function} compare - Item comparison function.
  * @return {number} - The index where to insert value.
  */
-function gallopLeft(value, array, start, length, hint, compare) {
+async function gallopLeft(value, array, start, length, hint, compare) {
   let lastOffset = 0;
   let maxOffset = 0;
   let offset = 1;
 
-  if (compare(value, array[start + hint]) > 0) {
+  if (await compare(value, array[start + hint]) > 0) {
     maxOffset = length - hint;
 
-    while (offset < maxOffset && compare(value, array[start + hint + offset]) > 0) {
+    while (offset < maxOffset && await compare(value, array[start + hint + offset]) > 0) {
       lastOffset = offset;
       offset = (offset << 1) + 1;
 
@@ -286,7 +189,7 @@ function gallopLeft(value, array, start, length, hint, compare) {
     // value <= array[start + hint]
   } else {
     maxOffset = hint + 1;
-    while (offset < maxOffset && compare(value, array[start + hint - offset]) <= 0) {
+    while (offset < maxOffset && await compare(value, array[start + hint - offset]) <= 0) {
       lastOffset = offset;
       offset = (offset << 1) + 1;
 
@@ -314,7 +217,7 @@ function gallopLeft(value, array, start, length, hint, compare) {
   while (lastOffset < offset) {
     let m = lastOffset + ((offset - lastOffset) >>> 1);
 
-    if (compare(value, array[start + m]) > 0) {
+    if (await compare(value, array[start + m]) > 0) {
       lastOffset = m + 1;
 
     } else {
@@ -337,15 +240,15 @@ function gallopLeft(value, array, start, length, hint, compare) {
  * @param {function} compare - Item comparison function.
  * @return {number} - The index where to insert value.
  */
-function gallopRight(value, array, start, length, hint, compare) {
+async function gallopRight(value, array, start, length, hint, compare) {
   let lastOffset = 0;
   let maxOffset = 0;
   let offset = 1;
 
-  if (compare(value, array[start + hint]) < 0) {
+  if (await compare(value, array[start + hint]) < 0) {
     maxOffset = hint + 1;
 
-    while (offset < maxOffset && compare(value, array[start + hint - offset]) < 0) {
+    while (offset < maxOffset && await compare(value, array[start + hint - offset]) < 0) {
       lastOffset = offset;
       offset = (offset << 1) + 1;
 
@@ -367,7 +270,7 @@ function gallopRight(value, array, start, length, hint, compare) {
   } else {
     maxOffset = length - hint;
 
-    while (offset < maxOffset && compare(value, array[start + hint + offset]) >= 0) {
+    while (offset < maxOffset && await compare(value, array[start + hint + offset]) >= 0) {
       lastOffset = offset;
       offset = (offset << 1) + 1;
 
@@ -396,7 +299,7 @@ function gallopRight(value, array, start, length, hint, compare) {
   while (lastOffset < offset) {
     let m = lastOffset + ((offset - lastOffset) >>> 1);
 
-    if (compare(value, array[start + m]) < 0) {
+    if (await compare(value, array[start + m]) < 0) {
       offset = m;
 
     } else {
@@ -456,7 +359,7 @@ class TimSort {
    * 1) runLength[i - 3] > runLength[i - 2] + runLength[i - 1]
    * 2) runLength[i - 2] > runLength[i - 1]
    */
-  mergeRuns() {
+  async mergeRuns() {
     while (this.stackSize > 1) {
       let n = this.stackSize - 2;
 
@@ -472,14 +375,14 @@ class TimSort {
       } else if (this.runLength[n] > this.runLength[n + 1]) {
         break;
       }
-      this.mergeAt(n);
+      await this.mergeAt(n);
     }
   }
 
   /**
    * Merge all runs on TimSort's stack until only one remains.
    */
-  forceMergeRuns() {
+  async forceMergeRuns() {
     while (this.stackSize > 1) {
       let n = this.stackSize - 2;
 
@@ -487,7 +390,7 @@ class TimSort {
         n--;
       }
 
-      this.mergeAt(n);
+      await this.mergeAt(n);
     }
   }
 
@@ -497,7 +400,7 @@ class TimSort {
    *
    * @param {number} i - Index of the run to merge in TimSort's stack.
    */
-  mergeAt(i) {
+  async mergeAt(i) {
     let compare = this.compare;
     let array = this.array;
 
@@ -519,7 +422,7 @@ class TimSort {
      * Find where the first element in the second run goes in run1. Previous
      * elements in run1 are already in place
      */
-    let k = gallopRight(array[start2], array, start1, length1, 0, compare);
+    let k = await gallopRight(array[start2], array, start1, length1, 0, compare);
     start1 += k;
     length1 -= k;
 
@@ -531,7 +434,7 @@ class TimSort {
      * Find where the last element in the first run goes in run2. Next elements
      * in run2 are already in place
      */
-    length2 = gallopLeft(array[start1 + length1 - 1], array, start2, length2, length2 - 1, compare);
+    length2 = await gallopLeft(array[start1 + length1 - 1], array, start2, length2, length2 - 1, compare);
 
     if (length2 === 0) {
       return;
@@ -542,10 +445,9 @@ class TimSort {
      * used
      */
     if (length1 <= length2) {
-      this.mergeLow(start1, length1, start2, length2);
-
+      await this.mergeLow(start1, length1, start2, length2);
     } else {
-      this.mergeHigh(start1, length1, start2, length2);
+      await this.mergeHigh(start1, length1, start2, length2);
     }
   }
 
@@ -562,7 +464,7 @@ class TimSort {
    * @param {number} start2 - First element in run2.
    * @param {number} length2 - Length of run2.
    */
-  mergeLow(start1, length1, start2, length2) {
+  async mergeLow(start1, length1, start2, length2) {
 
     let compare = this.compare;
     let array = this.array;
@@ -602,7 +504,7 @@ class TimSort {
       let exit = false;
 
       do {
-        if (compare(array[cursor2], tmp[cursor1]) < 0) {
+        if (await compare(array[cursor2], tmp[cursor1]) < 0) {
           array[dest++] = array[cursor2++];
           count2++;
           count1 = 0;
@@ -628,7 +530,7 @@ class TimSort {
       }
 
       do {
-        count1 = gallopRight(array[cursor2], tmp, cursor1, length1, 0, compare);
+        count1 = await gallopRight(array[cursor2], tmp, cursor1, length1, 0, compare);
 
         if (count1 !== 0) {
           for (i = 0; i < count1; i++) {
@@ -651,7 +553,7 @@ class TimSort {
           break;
         }
 
-        count2 = gallopLeft(tmp[cursor1], array, cursor2, length2, 0, compare);
+        count2 = await gallopLeft(tmp[cursor1], array, cursor2, length2, 0, compare);
 
         if (count2 !== 0) {
           for (i = 0; i < count2; i++) {
@@ -724,7 +626,7 @@ class TimSort {
    * @param {number} start2 - First element in run2.
    * @param {number} length2 - Length of run2.
    */
-  mergeHigh(start1, length1, start2, length2) {
+  async mergeHigh(start1, length1, start2, length2) {
     let compare = this.compare;
     let array = this.array;
     let tmp = this.tmp;
@@ -774,7 +676,7 @@ class TimSort {
       let exit = false;
 
       do {
-        if (compare(tmp[cursor2], array[cursor1]) < 0) {
+        if (await compare(tmp[cursor2], array[cursor1]) < 0) {
           array[dest--] = array[cursor1--];
           count1++;
           count2 = 0;
@@ -800,7 +702,7 @@ class TimSort {
       }
 
       do {
-        count1 = length1 - gallopRight(tmp[cursor2], array, start1, length1, length1 - 1, compare);
+        count1 = length1 - await gallopRight(tmp[cursor2], array, start1, length1, length1 - 1, compare);
 
         if (count1 !== 0) {
           dest -= count1;
@@ -826,7 +728,7 @@ class TimSort {
           break;
         }
 
-        count2 = length2 - gallopLeft(array[cursor1], tmp, 0, length2, length2 - 1, compare);
+        count2 = length2 - await gallopLeft(array[cursor1], tmp, 0, length2, length2 - 1, compare);
 
         if (count2 !== 0) {
           dest -= count2;
@@ -901,25 +803,14 @@ class TimSort {
  * Sort an array in the range [lo, hi) using TimSort.
  *
  * @param {array} array - The array to sort.
- * @param {function=} compare - Item comparison function. Default is
- *     alphabetical
+ * @param {function=} compare - Async item comparison function.
  * @param {number} lo - First element in the range (inclusive).
  * @param {number} hi - Last element in the range.
  *     comparator.
  */
-export function sort(array, compare = alphabeticalCompare, lo = 0, hi = array.length) {
+export async function sort(array, compare, lo = 0, hi = array.length) {
   if (!Array.isArray(array)) {
     throw new TypeError('Can only sort arrays');
-  }
-
-  /*
-   * Handle the case where a comparison function is not provided. We do
-   * lexicographic sorting
-   */
-  if (typeof compare !== 'function') {
-    hi = lo;
-    lo = compare;
-    compare = alphabeticalCompare;
   }
 
   let remaining = hi - lo;
@@ -932,8 +823,8 @@ export function sort(array, compare = alphabeticalCompare, lo = 0, hi = array.le
   let runLength = 0;
   // On small arrays binary sort can be used directly
   if (remaining < DEFAULT_MIN_MERGE) {
-    runLength = makeAscendingRun(array, lo, hi, compare);
-    binaryInsertionSort(array, lo, hi, lo + runLength, compare);
+    runLength = await makeAscendingRun(array, lo, hi, compare);
+    await binaryInsertionSort(array, lo, hi, lo + runLength, compare);
     return;
   }
 
@@ -942,19 +833,19 @@ export function sort(array, compare = alphabeticalCompare, lo = 0, hi = array.le
   let minRun = minRunLength(remaining);
 
   do {
-    runLength = makeAscendingRun(array, lo, hi, compare);
+    runLength = await makeAscendingRun(array, lo, hi, compare);
     if (runLength < minRun) {
       let force = remaining;
       if (force > minRun) {
         force = minRun;
       }
 
-      binaryInsertionSort(array, lo, lo + force, lo + runLength, compare);
+      await binaryInsertionSort(array, lo, lo + force, lo + runLength, compare);
       runLength = force;
     }
     // Push new run and merge if necessary
     ts.pushRun(lo, runLength);
-    ts.mergeRuns();
+    await ts.mergeRuns();
 
     // Go find next run
     remaining -= runLength;
@@ -963,5 +854,5 @@ export function sort(array, compare = alphabeticalCompare, lo = 0, hi = array.le
   } while (remaining !== 0);
 
   // Force merging of remaining runs
-  ts.forceMergeRuns();
+  await ts.forceMergeRuns();
 }
